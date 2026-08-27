@@ -1,7 +1,7 @@
 name: HA Bridge
 version: "0.4.2-1"
 slug: ha_bridge
-description: HA Bridge smart home dashboard for Home Assistant
+description: 在 Home Assistant 中运行 HA Bridge 智能家居可视化面板
 url: https://wiki.habridge.cn/
 startup: application
 boot: auto
