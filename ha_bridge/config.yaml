@@ -1,0 +1,38 @@
+name: HA Bridge
+version: "0.3.9"
+slug: ha_bridge
+description: HA Bridge smart home dashboard for Home Assistant
+url: https://github.com/weidaye1122/ha-bridge
+startup: application
+boot: auto
+init: false
+legacy: true
+
+arch:
+  - amd64
+  - aarch64
+
+image: crpi-w1apw3w3zzp43y80.cn-shanghai.personal.cr.aliyuncs.com/weidaye1122/ha_bridge
+
+host_network: true
+
+environment:
+  APP_DATA_DIR: /data
+  APP_PORT: "18080"
+  APP_HA_CREDENTIAL_FILE: /run/secrets/ha_credentials.key
+  APP_DISPLAY_PAIRING_KEY_FILE: /run/secrets/display_pairing_codes.key
+  APP_LICENSE_CREDENTIAL_FILE: /run/secrets/license_credentials.key
+
+# The add-on data directory is always mounted at /data by Supervisor. Keep a
+# second Supervisor-managed persistent directory at the image's existing
+# /run/secrets path so encrypted HA, pairing, and license keys survive restarts
+# and upgrades without changing the HA Bridge image.
+map:
+  - type: addon_config
+    read_only: false
+    path: /run/secrets
+
+webui: "http://[HOST]:18080"
+panel_icon: mdi:home-automation
+panel_title: HA Bridge
+backup: hot
