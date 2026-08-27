@@ -127,12 +127,7 @@ if [ "$latest_digest" != "$release_digest" ]; then
   exit 1
 fi
 
-if [ -n "${ADDON_CHANGELOG_SUMMARY:-}" ]; then
-  python3 release/version.py set "$BASE_VERSION" "$ADDON_REVISION" \
-    --summary "$ADDON_CHANGELOG_SUMMARY"
-else
-  python3 release/version.py set "$BASE_VERSION" "$ADDON_REVISION"
-fi
+python3 release/version.py set "$BASE_VERSION" "$ADDON_REVISION"
 python3 release/version.py check "$BASE_VERSION" "$ADDON_REVISION"
 git diff --check
 git add -- ha_bridge/config.yaml ha_bridge/CHANGELOG.md

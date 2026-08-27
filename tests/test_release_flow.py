@@ -31,7 +31,10 @@ class ReleaseVersionTests(unittest.TestCase):
 
             self.assertEqual(module.set_version("0.4.3", 1), "0.4.3-1")
             self.assertEqual(module.read_current_version(), "0.4.3-1")
-            self.assertIn("## 0.4.3-1", changelog.read_text(encoding="utf-8"))
+            updated_changelog = changelog.read_text(encoding="utf-8")
+            self.assertIn("## 0.4.3-1", updated_changelog)
+            self.assertIn("- 修复了一些已知内容。", updated_changelog)
+            self.assertNotIn("HA Bridge 主程序升级至", updated_changelog)
             module.check_version("0.4.3", 1)
 
     def test_version_policy_rejects_invalid_base_or_revision(self) -> None:

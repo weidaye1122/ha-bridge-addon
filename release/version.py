@@ -29,7 +29,7 @@ def read_current_version() -> str:
     return match.group(1)
 
 
-def set_version(base_version: str, revision: int, summary: str | None = None) -> str:
+def set_version(base_version: str, revision: int) -> str:
     target = addon_version(base_version, revision)
     source = CONFIG_PATH.read_text(encoding="utf-8")
     updated, count = CONFIG_VERSION_PATTERN.subn(rf'\g<1>{target}\g<2>', source, count=1)
@@ -40,15 +40,9 @@ def set_version(base_version: str, revision: int, summary: str | None = None) ->
     changelog = CHANGELOG_PATH.read_text(encoding="utf-8")
     heading = f"## {target}"
     if heading not in changelog:
-        detail = summary or (
-            f"HA Bridge 主程序升级至 {base_version}。"
-            if revision == 1
-            else "更新 Home Assistant Add-on 适配层。"
-        )
         entry = (
             f"{heading}\n\n"
-            f"- {detail}\n"
-            "- 保持 Add-on 数据与加密密钥的持久化方式不变。\n\n"
+            "- 修复了一些已知内容。\n\n"
         )
         marker = "# 更新日志\n\n"
         if not changelog.startswith(marker):
@@ -77,14 +71,12 @@ def main() -> None:
         command_parser = subparsers.add_parser(command)
         command_parser.add_argument("base_version")
         command_parser.add_argument("revision", type=int)
-        if command == "set":
-            command_parser.add_argument("--summary")
     args = parser.parse_args()
 
     if args.command == "current":
         print(read_current_version())
     elif args.command == "set":
-        print(set_version(args.base_version, args.revision, args.summary))
+        print(set_version(args.base_version, args.revision))
     elif args.command == "check":
         check_version(args.base_version, args.revision)
 
