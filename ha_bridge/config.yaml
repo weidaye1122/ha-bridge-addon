@@ -2,6 +2,7 @@ name: HA Bridge
 version: "0.4.2-1"
 slug: ha_bridge
 description: HA Bridge
+url: https://wiki.habridge.cn/
 startup: application
 boot: auto
 init: false
