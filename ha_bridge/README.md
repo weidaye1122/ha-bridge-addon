@@ -1,6 +1,6 @@
 # HA Bridge
 
-在 Home Assistant 中直接运行 HA Bridge 智能家居可视化面板。
+在 Home Assistant 中直接运行 HA Bridge 智能家居可视化面板编辑器。
 
 ## 访问地址
 
