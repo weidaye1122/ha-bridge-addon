@@ -16,6 +16,12 @@ image: crpi-w1apw3w3zzp43y80.cn-shanghai.personal.cr.aliyuncs.com/weidaye1122/ha
 
 host_network: true
 
+# Temporary compatibility switch for VM testing: the current product image
+# declares USER ha-bridge, while some Supervisor data mounts are root-owned.
+# Remove this before production and publish a tiny root-entrypoint adapter
+# image instead.
+full_access: true
+
 environment:
   APP_DATA_DIR: /data
   APP_PORT: "18080"
