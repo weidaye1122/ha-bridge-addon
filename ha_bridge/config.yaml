@@ -32,7 +32,7 @@ map:
     read_only: false
     path: /run/secrets
 
-webui: "http://[HOST]:18080"
+webui: "http://[HOST]:[PORT:18080]"
 panel_icon: mdi:home-automation
 panel_title: HA Bridge
 backup: hot
