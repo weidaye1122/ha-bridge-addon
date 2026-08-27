@@ -18,5 +18,3 @@ http://Home Assistant_IP:18080
 
 - `/data`：数据库、项目、素材、授权状态、Home Assistant 链接及本地账号
 - `/run/secrets`：本地安全信息
-
-升级或重启 Add-on 不会清除以上数据。
