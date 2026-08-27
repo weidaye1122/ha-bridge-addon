@@ -8,4 +8,4 @@ HA Bridge 的 Home Assistant Add-on 封装。
 http://Home Assistant_IP:18080
 ```
 
-Add-on 会自动保存 HA Bridge 的配置和使用数据，包括 Home Assistant 链接以及 HA Bridge 本地账号。升级和重启后会继续保留。
+Add-on 使用 Supervisor 管理的 `/data` 保存数据库、项目、素材、授权状态、Home Assistant 链接及 HA Bridge 本地账号；`/run/secrets` 保存相关的本地安全信息。升级和重启后这些数据会继续保留。
