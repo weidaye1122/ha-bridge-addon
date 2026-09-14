@@ -7,6 +7,7 @@ FROM ${BASE_IMAGE}
 
 ARG ADDON_VERSION
 ARG BASE_IMAGE
+ENV APP_UPDATE_CHANNEL=addon
 LABEL org.opencontainers.image.title="HA Bridge Home Assistant Add-on" \
       org.opencontainers.image.version="${ADDON_VERSION}" \
       io.habridge.addon.base-image="${BASE_IMAGE}"
