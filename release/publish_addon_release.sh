@@ -91,6 +91,7 @@ docker buildx build \
   --build-arg "BASE_IMAGE=$immutable_base" \
   --build-arg "ADDON_VERSION=$addon_version" \
   --provenance=mode=min \
+  --output type=image,oci-artifact=false \
   --tag "$release_ref" \
   --push \
   release
