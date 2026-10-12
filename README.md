@@ -1,5 +1,7 @@
 # HA Bridge Home Assistant Add-on
 
+开发定位与修改影响见 [代码地图](docs/code-map/README.md)。
+
 这是独立的 HA 插件安装仓库，消费已发布的 HA Bridge 镜像，不复制主程序源码。
 
 - `repository.yaml`：插件仓库信息。
