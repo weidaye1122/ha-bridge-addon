@@ -1,3 +1,22 @@
 .DS_Store
 __pycache__/
 *.py[cod]
+
+# Workspace governance: local data, secrets and generated output
+.env
+.env.*
+!.env.example
+!.env.*.example
+.pytest_cache/
+__pycache__/
+*.py[cod]
+record/
+output/
+*.p12
+*.pfx
+*.mobileprovision
+*.keystore
+*.jks
+AuthKey_*.p8
+*.key
+*private*.pem
