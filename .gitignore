@@ -1,6 +1,7 @@
 .DS_Store
 __pycache__/
 *.py[cod]
+.venv/
 
 # Workspace governance: local data, secrets and generated output
 .env
