@@ -2,8 +2,8 @@
 set -eu
 
 action=${1:-}
-if [ "$action" != "preflight" ] && [ "$action" != "publish" ]; then
-  echo "usage: BASE_VERSION=X.Y.Z ADDON_REVISION=N $0 preflight|publish" >&2
+if [ "$action" != "preflight" ] && [ "$action" != "publish" ] && [ "$action" != "resume" ]; then
+  echo "usage: BASE_VERSION=X.Y.Z ADDON_REVISION=N $0 preflight|publish|resume" >&2
   exit 2
 fi
 
@@ -48,16 +48,24 @@ if ! git merge-base --is-ancestor "$remote_main" "$local_head"; then
   echo "Add-on HEAD must contain origin/main without divergence before publishing" >&2
   exit 2
 fi
-if git show-ref --verify --quiet "refs/tags/$tag_name" || \
-   git ls-remote --exit-code --tags origin "refs/tags/$tag_name" >/dev/null 2>&1; then
+resuming=false
+if [ "$action" = resume ] && python3 release/release_state.py exists "$addon_version"; then
+  resuming=true
+fi
+if [ "$resuming" = false ] && { git show-ref --verify --quiet "refs/tags/$tag_name" ||
+   git ls-remote --exit-code --tags origin "refs/tags/$tag_name" >/dev/null 2>&1; }; then
   echo "Add-on Git tag $tag_name already exists; refusing to overwrite it" >&2
   exit 2
 fi
 
 existing_image=""
+image_exists=false
 if existing_image=$(docker buildx imagetools inspect "$release_ref" 2>&1); then
-  echo "Add-on image $release_ref already exists; refusing to overwrite it" >&2
-  exit 2
+  image_exists=true
+  if [ "$resuming" = false ]; then
+    echo "Add-on image $release_ref already exists; refusing to overwrite it" >&2
+    exit 2
+  fi
 else
   case "$existing_image" in
     *not\ found*|*manifest\ unknown*|*MANIFEST_UNKNOWN*) ;;
@@ -65,6 +73,9 @@ else
   esac
 fi
 
+if [ "$resuming" = false ]; then
+  python3 release/release_state.py pending "$addon_version"
+fi
 if [ "$action" = "preflight" ]; then
   printf 'Add-on release preflight passed: %s\n' "$addon_version"
   exit 0
@@ -84,6 +95,25 @@ for platform in linux/amd64 linux/arm64; do
 done
 
 immutable_base="$base_ref@$base_digest"
+if [ "$resuming" = true ]; then
+  python3 release/release_state.py verify "$addon_version" "$immutable_base" "$release_ref"
+  previous_version=$(python3 release/release_state.py get "$addon_version" previous)
+  saved_digest=$(python3 release/release_state.py get "$addon_version" digest)
+  observed_digest=$(printf '%s\n' "$existing_image" | sed -n 's/^Digest:[[:space:]]*//p' | head -n 1)
+  if [ "$image_exists" = true ]; then
+    if [ -z "$saved_digest" ] || [ -z "$observed_digest" ] || [ "$observed_digest" != "$saved_digest" ]; then
+      echo 'Existing Add-on image has no matching receipt; inspect the interrupted push before recovery.' >&2
+      exit 2
+    fi
+  elif [ -n "$saved_digest" ]; then
+    echo 'The recorded Add-on image is missing; refusing to rebuild an immutable publication.' >&2
+    exit 2
+  fi
+else
+  previous_version=$(python3 release/version.py current)
+  python3 release/release_state.py begin "$addon_version" "$previous_version" "$immutable_base" "$release_ref"
+fi
+if [ "$resuming" = false ] || [ -z "$saved_digest" ]; then
 docker buildx build \
   --builder "$BUILDER_NAME" \
   --file release/Dockerfile \
@@ -95,6 +125,7 @@ docker buildx build \
   --tag "$release_ref" \
   --push \
   release
+fi
 
 release_inspect=$(docker buildx imagetools inspect "$release_ref")
 release_digest=$(printf '%s\n' "$release_inspect" | sed -n 's/^Digest:[[:space:]]*//p' | head -n 1)
@@ -102,6 +133,7 @@ if [ -z "$release_digest" ]; then
   echo "unable to resolve Add-on release digest: $release_ref" >&2
   exit 1
 fi
+python3 release/release_state.py image-ready "$addon_version" "$release_digest"
 for platform in linux/amd64 linux/arm64; do
   printf '%s\n' "$release_inspect" | grep -E "Platform:[[:space:]]+$platform$" >/dev/null || {
     echo "Add-on release is missing $platform: $release_ref" >&2
@@ -116,7 +148,6 @@ cleanup_anonymous() {
 trap cleanup_anonymous EXIT INT TERM HUP
 DOCKER_CONFIG="$anonymous_config" docker manifest inspect "$release_ref" >/dev/null
 
-previous_version=$(python3 release/version.py current)
 previous_ref="$ADDON_IMAGE_REPOSITORY:$previous_version"
 ./release/verify_addon_upgrade.sh "$previous_ref" "$release_ref" "$BASE_VERSION"
 
@@ -132,8 +163,15 @@ python3 release/version.py set "$BASE_VERSION" "$ADDON_REVISION"
 python3 release/version.py check "$BASE_VERSION" "$ADDON_REVISION"
 git diff --check
 git add -- ha_bridge/config.yaml ha_bridge/CHANGELOG.md
-git commit -m "release: HA Bridge Add-on $addon_version"
-git tag -a "$tag_name" -m "HA Bridge Add-on $addon_version"
+if ! git diff --cached --quiet; then
+  git commit -m "release: HA Bridge Add-on $addon_version"
+fi
+if ! git show-ref --verify --quiet "refs/tags/$tag_name"; then
+  git tag -a "$tag_name" -m "HA Bridge Add-on $addon_version"
+fi
+[ "$(git rev-list -n 1 "$tag_name")" = "$(git rev-parse HEAD)" ] || {
+  echo 'Add-on tag does not match the interrupted release source.' >&2; exit 2;
+}
 git push --atomic origin "HEAD:refs/heads/main" "refs/tags/$tag_name"
 
 remote_main=$(git ls-remote origin refs/heads/main | awk '{print $1}')
@@ -144,6 +182,7 @@ if [ "$remote_main" != "$local_head" ] || [ "$remote_tag" != "$local_head" ]; th
   exit 1
 fi
 
+python3 release/release_state.py complete "$addon_version"
 trap - EXIT INT TERM HUP
 rm -rf "$anonymous_config"
 printf 'Published HA Bridge Add-on %s from %s (%s).\n' \

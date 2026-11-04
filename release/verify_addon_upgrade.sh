@@ -10,10 +10,25 @@ container_name="ha-bridge-addon-release-verify-$$"
 mkdir -p "$verify_root/data" "$verify_root/secrets"
 
 cleanup() {
-  docker rm --force "$container_name" >/dev/null 2>&1 || true
+  cleanup_status=$?
+  if cleanup_output=$(docker rm --force "$container_name" 2>&1); then
+    :
+  else
+    case "$cleanup_output" in
+      *No\ such\ container:*) ;;
+      *)
+        printf 'Unable to remove owned container %s; temporary data retained at %s\n%s\n' \
+          "$container_name" "$verify_root" "$cleanup_output" >&2
+        return 1
+        ;;
+    esac
+  fi
   rm -rf "$verify_root"
+  return "$cleanup_status"
 }
-trap cleanup EXIT INT TERM HUP
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM HUP
 
 start_container() {
   image_ref=$1
@@ -63,5 +78,7 @@ if [ "$runtime_uid" != "100" ]; then
   exit 1
 fi
 
+trap - EXIT INT TERM HUP
+cleanup
 printf 'Add-on upgrade verified: %s -> %s, application=%s, runtime_uid=%s\n' \
   "$previous_ref" "$release_ref" "$expected_version" "$runtime_uid"

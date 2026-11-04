@@ -35,3 +35,9 @@
 待实测：真实 Supervisor/HAOS 安装、用户卷权限、恢复与升级。Docker 隔离脚本存在不等于本轮已执行镜像升级。
 
 入口/镜像/挂载/版本责任变化时更新本页和相关安装文档，核对日期及基线随涉及章节更新；纯文案无需重写路线，交接注明原因。开发命令见 [开发入口](../DEVELOPMENT.md)，规则见 [AGENTS](../../AGENTS.md)。
+
+## 2026-11-04 发布恢复与清理反馈
+
+局部基线 `24ac354` 加本轮未提交工具修复。publish_addon_release.sh 增加 resume 动作；[release_state.py](../../release/release_state.py) 归属本组记录/发布事务，保存原 source/previous/base/image/digest。已有镜像只在原摘要匹配时复用，版本提交只允许原源提交后的两个版本文件变化；升级/Git 失败后沿用原 previous，不重复构建或移动已有标签。无摘要的未知推送结果及未提交改动停止人工核对，完成凭证保留。
+
+verify_addon_upgrade.sh 的 EXIT 只清理自己的容器，删除失败保留临时目录并返回非零；SIGINT/SIGTERM/HUP 明确退出，不继续后续发布。正常路径在确认清理成功后才打印完成。行为回归见 [test_release_recovery.py](../../tests/test_release_recovery.py)，覆盖升级/Git 中断、摘要/源码漂移、清理失败和已不存在容器；这些使用本地 Git 和 Docker 替身，不代替 HAOS/镜像实测。tools/check.sh 发现全部本项目 test_*.py。
