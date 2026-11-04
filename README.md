@@ -9,7 +9,7 @@
 - `release/`：发布与升级验证工具。
 - `tests/test_release_flow.py`：发布流程检查。
 
-规则见 [AGENTS.md](AGENTS.md)。在工作区可执行 `../ha-bridge/.venv/bin/python -m pytest tests/test_release_flow.py -q`；实际发布先检查 `release/publish_addon_release.sh` 参数，升级验证按 `release/verify_addon_upgrade.sh`。测试通过不代替真实 HAOS 升级验收。
+规则见 [AGENTS.md](AGENTS.md)。日常执行 `sh tools/check.sh`，无需借用主程序环境。Add-on 始终跟随主程序，由主程序 `release/publish_full_release.sh` 统一发布；本仓库发布脚本承担其中的适配镜像和升级步骤。测试通过不代替真实 HAOS 升级验收。
 
 ## 仓库与开发规则
 

@@ -1,32 +1,21 @@
 # Add-on 开发入口
 
-代码地图见 [功能与调用地图](code-map/README.md)，修改前先沿相关路线核对当前源码。
+Add-on 是主程序的 HA 安装适配层，源码/Git 分开管理，始终跟随主程序完整发布。它消费对应已发布主镜像，不复制业务源码。关系见 [代码地图](code-map/README.md)。
 
-核对：2026-10-12，基线 `0a630a8`。这是主程序的安装适配层，消费正式镜像。
+## 日常验证
 
-## 定位与边界
+在本仓库运行 `sh tools/check.sh`；只依赖 Python 标准库和 shell，无须借用主程序 .venv。覆盖版本/日志、适配 Dockerfile、发布顺序及脚本语法，不查询远端或启动生产。
 
-- [规则](../AGENTS.md)、[安装说明](../ha_bridge/README.md)、[使用文档](../ha_bridge/DOCS.md)。
-- `repository.yaml`：HA 插件仓库；`ha_bridge/config.yaml`：版本、架构、镜像、环境与持久挂载；`ha_bridge/CHANGELOG.md`：插件日志。
-- `release/Dockerfile`：已发布主镜像的适配；`release/version.py`：同步插件版本及日志；不在此复制业务代码。
+涉及镜像、权限或持久挂载时再运行 release/verify_addon_upgrade.sh，以明确的上一成功版本和候选版本在临时 data/secrets 上验证。脚本只清理自己创建的容器与目录；Docker 隔离升级不能替代真实 HAOS/Supervisor 安装、Ingress、备份恢复和用户升级。
 
-## 验证
+## 随主程序发布
 
-发布流程测试使用 Python 标准库，单独克隆也可在本仓库运行，无需安装主程序：
+统一入口是主程序 release/publish_full_release.sh。它先做 Add-on 预检查，主程序发布后再调用本仓库 publish_addon_release.sh publish；Add-on 成功才标记整轮成功。保留 X.Y.Z-N 版本规则以及主镜像不可变 digest、双架构、匿名拉取、升级、latest/Git 的既有校验。
 
-```sh
-python3 -m unittest discover -s tests -p test_release_flow.py
-sh -n release/publish_addon_release.sh
-sh -n release/verify_addon_upgrade.sh
-git diff --check
-```
+本仓库 preflight 会查询 Git 和镜像；publish 会推送镜像及 Git，均不能作为普通离线检查执行。主程序通过工作区登记或显式 ADDON_REPOSITORY_DIR 找到本仓库，独立克隆也必须明确主程序交付来源。
 
-已有工作区也可用同级主程序 Python 环境运行 pytest。涉及镜像、目录初始化或挂载时，再按升级脚本验证隔离容器；脚本自建临时数据和容器，只清理自己的资源。
+## 材料与维护
 
-## 版本与交付
+本组记录/当前验证.md 保存有效结果和缺口；必要原始发布身份、主程序联动账本引用和恢复材料保留。旧日常副本及发布工作树保持，后续日常修改在新目录进行；不因旧路径仍在而并行维护两份版本。
 
-`主程序版本-插件修订号` 由 `release/version.py` 维护。改适配层检查 amd64/aarch64、持久 `data`/`secrets`、运行 UID 与更新渠道，不擅自清空用户安装数据。
-
-正式入口 `release/publish_addon_release.sh preflight|publish`，阅读脚本后指定 `BASE_VERSION` / `ADDON_REVISION`；preflight 会查询远端 Git 和镜像，不是离线检查。实际 publish 会上传镜像、验证升级、更新版本并推送仓库，只有发布任务才执行。
-
-`release/verify_addon_upgrade.sh` 的隔离 Docker 升级不能代替真实 Supervisor/HAOS 安装、Ingress 与用户升级验收。历史结果留在本机证据，插件最终日志维护于 CHANGELOG；没有接入三个项目的自动开发记录门禁，也未配置业务测试 CI。
+config.yaml 的 /data 与 /run/secrets、UID 降权、更新渠道会影响既有用户数据/授权，改动时同时核对主镜像入口。CHANGELOG 和本项目 QA 继续分别维护，不额外新增主程序三项目门禁之外的记录系统。
