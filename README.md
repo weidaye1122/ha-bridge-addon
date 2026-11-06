@@ -2,7 +2,7 @@
 
 开发定位与修改影响见 [代码地图](docs/code-map/README.md)。
 
-这是独立的 HA 插件安装仓库，消费已发布的 HA Bridge 镜像，不复制主程序源码。
+这是独立的 HA 插件安装仓库，通过不可变摘要消费 HA Bridge 镜像，不复制主程序源码；候选先验收，正式渠道随主程序统一提升。
 
 - `repository.yaml`：插件仓库信息。
 - `ha_bridge/config.yaml`：插件版本与配置；使用与安装见 [插件说明](ha_bridge/README.md) 和 [使用文档](ha_bridge/DOCS.md)。

@@ -1,5 +1,16 @@
 # Add-on 代码地图
 
+## 2026-11-06 候选验收与正式提升
+
+本节基线4f02384加本次修改，安装配置、容器入口和业务源码不变。主程序full_release_pipeline通过本仓库公开release/candidate.py准备Add-on候选，BASE_IMAGE_REF为阿里云候选主镜像repo@digest，PREVIOUS_ADDON_REF及旧应用版本来自上一次成功发布账本；临时数据/密钥与业务无关。prepare锁定源码/引用与摘要，双架构清单及匿名拉取、分平台调用verify_addon_upgrade.sh后保存verified；不写正式版本/latest/配置/Git。
+
+主程序整轮check冻结必需验收和同一产物，正式提升后candidate.finalize调用所属主程序authorize-addon公开校验当前事务、来源、验收、正式渠道，再由本项目version.py同步配置与版本提交、标签/Git回查。中断产生的合法两文件版本提交沿receipt恢复，其他源码/摘要变化停止；abandon仅接受所属未提升主事务，保留尝试，不清未知远端内容。release_state旧format1仅用于既有恢复，直接新publish拒绝；无Add-on凭证的旧尾段必须由匹配且主镜像已发布的format1完整凭证授权。
+
+verify_addon_upgrade.sh和upgrade_data_probe.py负责真实旧容器建立匿名账号/非空项目草稿，核对已有会话与凭据登录、业务表/实例/身份摘要、候选重启以及恢复完整旧数据后旧容器读取；所有资源由本脚本创建和销毁，删除失败保留数据/容器路径。主程序也复用这个公开容器验证入口检查其候选，不能把清单双架构当两平台已运行，或把Docker仿真当HAOS真机。
+
+行为入口：本项目test_release_flow.py/test_release_recovery.py，主程序test_full_release_pipeline.py（真实临时Git及有状态镜像替身）、test_full_release_resume.py（format1）；实际匿名容器平台见主程序当前验证。以下原顺序按历史保留，现行流程以本节和DEVELOPMENT为准。
+
+
 2026-11-04 局部核对：基线 `3a1e06d`（原0.8.4-1及规则差异）加分组开发说明。Add-on继续随主程序完整发布，主程序通过项目登记/显式路径调用本仓库脚本，原发布顺序、版本、digest与挂载实现未改。[tools/check.sh](../../tools/check.sh) 提供只依赖Python标准库的离线检查，不借用旧同级主程序虚拟环境。当前命令见 [开发入口](../DEVELOPMENT.md)；本轮脚本测试和现有正式镜像隔离升级结果在本组当前验证，真实HAOS验收另列。
 
 核对：2026-10-12，基线 `41aa5b6`，开始时无未提交变更；本轮仅地图/规则。范围为安装配置、镜像适配、发布与升级责任，不审查主程序内部实现。下面的测试链接是定位；本轮实际运行结果见“验证状态”。
@@ -11,7 +22,7 @@
 | HA 仓库展示 | [repository.yaml](../../repository.yaml)、[config.yaml](../../ha_bridge/config.yaml) | 插件来源/架构/镜像/webui，核对 Supervisor 安装展示 |
 | 挂载与更新渠道 | [config.yaml](../../ha_bridge/config.yaml)、[Dockerfile](../../release/Dockerfile) | /data 与 /run/secrets 持久化；APP_UPDATE_CHANNEL=addon；[流程测试](../../tests/test_release_flow.py) |
 | 版本与用户日志 | [version.py](../../release/version.py)：read_current_version、set_version、check_version | 同步 config.yaml 与 [CHANGELOG](../../ha_bridge/CHANGELOG.md)，不能改主程序版本 |
-| 正式镜像与标签 | [publish_addon_release.sh](../../release/publish_addon_release.sh) | 读取主镜像不可变 digest，检查双架构和匿名拉取，升级通过再更新 latest/Git |
+| 正式镜像与标签 | [candidate.py](../../release/candidate.py)；旧恢复[publish_addon_release.sh](../../release/publish_addon_release.sh) | 候选主镜像摘要→Add-on候选/升级→所属完整事务授权→版本Git；正式渠道由统一事务提升 |
 | 隔离升级 | [verify_addon_upgrade.sh](../../release/verify_addon_upgrade.sh)：start_container、wait_ready | 临时 data/secrets 先旧后新，检查 ready/版本/UID；不能代替 HAOS 真机 |
 
 ## 执行与数据路线

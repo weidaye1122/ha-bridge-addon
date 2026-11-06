@@ -10,13 +10,15 @@ Add-on 是主程序的 HA 安装适配层，源码/Git 分开管理，始终跟�
 
 ## 随主程序发布
 
-统一入口是主程序 release/publish_full_release.sh。它先做 Add-on 预检查，主程序发布后再调用本仓库 publish_addon_release.sh publish；Add-on 成功才标记整轮成功。保留 X.Y.Z-N 版本规则以及主镜像不可变 digest、双架构、匿名拉取、升级、latest/Git 的既有校验。
+统一入口是主程序release/publish_full_release.sh。新发布先prepare主程序和Add-on不可变候选，验证后check本版任务/用户/必需验收，最后publish提升同一摘要；Add-on直接以阿里云候选主镜像repo@digest构建，无须提前发布主程序正式标签。整轮成功必须等正式镜像、两个Git和商店版本全部回查。X.Y.Z-N策略、挂载、UID和业务代码责任不变。
 
-主程序恢复入口调用本仓库的 `resume` 动作；`release/release_state.py` 将源提交、原升级来源、主镜像不可变引用及已推送镜像摘要保存在本组记录/发布事务（独立克隆使用所属主仓库 output/release-transactions）。恢复只复用匹配凭证的镜像，保留原升级来源，继续升级检查和 Git；不覆盖已占用镜像。未知推送结果、未提交版本修改、缺凭证或源码/摘要变化需先人工核对。凭证不含业务数据，完成后保留精简身份，不能按临时日志删除。
+[release/candidate.py](../release/candidate.py)提供prepare/inspect/finalize/abandon公开协作入口，由主程序调用；本组记录/发布事务保存format2候选来源、上一成功升级源、主镜像基线、镜像摘要和版本Git状态，CLI写操作持单次锁。prepare只写专用候选引用并验证双架构、匿名拉取和升级，不更新正式渠道或商店。finalize需所属主程序完整事务授权，并确认正式Add-on渠道已经指向已验证摘要，再提交版本配置/Git。主程序不复制本项目版本/恢复规则，候选source或摘要漂移均停止；已发生正式提升时不能abandon。
 
-升级验证先删除并确认自身容器退出，再清理临时 data/secrets；容器已不存在可接受，其他删除错误返回失败并显示容器名和保留路径。普通退出/信号分别保留失败状态，不操作其他容器。
+升级脚本用上一成功版本生成非空匿名账号/项目/草稿，核对已有会话及密码登录、实例/身份文件、业务表、重启和备份恢复；digest引用必须显式给出旧应用版本，VERIFY_PLATFORM分别指定amd64/arm64。输出的执行平台必须如实说明，本机仿真或容器不能代替真实HAOS/Supervisor安装、Ingress及用户卷恢复。只清理自身容器/临时目录，容器删除失败保留精确路径并返回失败。
 
-本仓库 preflight 会查询 Git 和镜像；publish 会推送镜像及 Git，均不能作为普通离线检查执行。主程序通过工作区登记或显式 ADDON_REPOSITORY_DIR 找到本仓库，独立克隆也必须明确主程序交付来源。
+旧publish_addon_release.sh仍提供只读远端preflight和format1 resume，新单独publish拒绝以免绕过整轮门禁。若旧主程序已发布而Add-on尚未开始，只有匹配源码/版本/主镜像摘要的所属format1完整凭证可以授权补完该历史尾段。旧恢复必须使用其原源码基线，不能用新工具提交改写旧receipt身份。完整凭证保留，不作为普通缓存删除；新事务恢复通过主程序resume同一版本，不覆盖未知镜像或重建已验证产物。
+
+preflight、候选prepare都会查询Git/镜像，prepare还上传候选，只在相应授权下执行；日常离线检查仍是sh tools/check.sh。主程序通过项目登记或显式ADDON_REPOSITORY_DIR定位本仓库；独立克隆明确主程序与本组记录位置。当前真实运行/平台边界见所属当前验证，本轮工具改动没有执行新正式发布。
 
 ## 材料与维护
 

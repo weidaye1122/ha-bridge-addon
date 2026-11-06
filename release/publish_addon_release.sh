@@ -30,6 +30,31 @@ release_ref="$ADDON_IMAGE_REPOSITORY:$addon_version"
 latest_ref="$ADDON_IMAGE_REPOSITORY:latest"
 base_ref="$BASE_IMAGE_REPOSITORY:$BASE_VERSION"
 
+# New stable releases are coordinated by the main candidate transaction.
+# Keep format1 recovery available for already-published historical images.
+if [ "$action" = publish ]; then
+  echo 'Use the main publish_full_release.sh prepare/check/publish flow; direct Add-on publication is disabled.' >&2
+  exit 2
+fi
+legacy_full_digest=""
+if [ "$action" = resume ] && ! python3 release/release_state.py exists "$addon_version"; then
+  legacy_full_digest=$(python3 - "$BASE_VERSION" "$ADDON_REVISION" "$BASE_IMAGE_REPOSITORY" <<'PYRECEIPT'
+import json,os,subprocess,sys
+from pathlib import Path
+path=os.environ.get('HABRIDGE_LEGACY_FULL_RELEASE_RECEIPT','')
+if not path:
+    raise SystemExit('No legacy Add-on receipt; resume the owning full publication')
+s=json.loads(Path(path).read_text())
+head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+if (s.get('format')!=1 or s.get('version')!=sys.argv[1] or s.get('revision')!=sys.argv[2]
+        or s.get('phase')!='main-ready' or s.get('addonSource')!=head or not s.get('digest')
+        or sys.argv[3] not in {s.get('image'),s.get('aliyun')}):
+    raise SystemExit('Legacy full receipt does not authorize this unfinished Add-on tail')
+print(s['digest'])
+PYRECEIPT
+)
+fi
+
 if [ -n "$(git status --porcelain --untracked-files=normal)" ]; then
   echo "formal Add-on publishing requires a clean source tree" >&2
   exit 2
@@ -86,6 +111,10 @@ base_digest=$(printf '%s\n' "$base_inspect" | sed -n 's/^Digest:[[:space:]]*//p'
 if [ -z "$base_digest" ]; then
   echo "unable to resolve immutable HA Bridge base digest: $base_ref" >&2
   exit 1
+fi
+if [ -n "$legacy_full_digest" ] && [ "$base_digest" != "$legacy_full_digest" ]; then
+  echo 'Published main image differs from the owning legacy full receipt' >&2
+  exit 2
 fi
 for platform in linux/amd64 linux/arm64; do
   printf '%s\n' "$base_inspect" | grep -E "Platform:[[:space:]]+$platform$" >/dev/null || {

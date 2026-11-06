@@ -1,6 +1,7 @@
 """Exercise publication recovery and cleanup with local Git and owned Docker substitutes."""
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -21,6 +22,11 @@ class PublicationRecoveryTests(unittest.TestCase):
         (self.repo / 'ha_bridge').mkdir()
         for name in ('publish_addon_release.sh', 'release_state.py', 'version.py'):
             shutil.copy2(ROOT / 'release' / name, self.repo / 'release' / name)
+        # Create format1 historical interruptions in the fixture only. The
+        # real script permits their recovery but rejects new direct publishes.
+        legacy = (self.repo / 'release/publish_addon_release.sh').read_text()
+        legacy = re.sub(r'if \[ "\$action" = publish \]; then\n.*?\nfi\n', '', legacy, count=1, flags=re.S)
+        (self.repo / 'release/bootstrap_legacy.sh').write_text(legacy)
         (self.repo / 'ha_bridge/config.yaml').write_text('version: "0.1.0-1"\n')
         (self.repo / 'ha_bridge/CHANGELOG.md').write_text('# 更新日志\n\n## 0.1.0-1\n\n- previous\n')
         (self.repo / '.gitignore').write_text('output/\n')
@@ -71,7 +77,8 @@ elif args[:3]!=['buildx','imagetools','create']:sys.exit(99)
                                         text=True, stderr=subprocess.DEVNULL).strip()
 
     def run_release(self, action, **env):
-        return subprocess.run(['sh', 'release/publish_addon_release.sh', action], cwd=self.repo,
+        script = 'release/bootstrap_legacy.sh' if action == 'publish' else 'release/publish_addon_release.sh'
+        return subprocess.run(['sh', script, action], cwd=self.repo,
             env=dict(self.env, **env), text=True, capture_output=True, timeout=15)
 
     def test_upgrade_failure_resumes_without_rebuilding(self):
@@ -130,6 +137,19 @@ elif args[:3]!=['buildx','imagetools','create']:sys.exit(99)
         result = self.run_release('resume')
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('source changed', result.stderr)
+
+    def test_legacy_full_receipt_can_authorize_an_unstarted_addon_tail(self):
+        full = self.base / 'legacy-full.json'
+        full.write_text(json.dumps(dict(format=1, version='0.1.1', revision='1', phase='main-ready', addonSource=self.git('rev-parse', 'HEAD'), digest='sha256:'+'a'*64, image='fixture/base', aliyun='fixture/base')))
+        result = self.run_release('resume', HABRIDGE_LEGACY_FULL_RELEASE_RECEIPT=str(full))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads((self.repo/'output/release-transactions/addon-0.1.1-1.json').read_text())['phase'], 'complete')
+
+    def test_direct_new_publish_and_unowned_legacy_resume_cannot_write(self):
+        for action in ['publish', 'resume']:
+            result = subprocess.run(['sh', 'release/publish_addon_release.sh', action], cwd=self.repo, env=self.env, text=True, capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(self.events.exists())
 
     def tearDown(self):
         self.temp.cleanup()

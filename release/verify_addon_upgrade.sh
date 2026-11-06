@@ -4,6 +4,9 @@ set -eu
 previous_ref=${1:?Pass the previous Add-on image reference.}
 release_ref=${2:?Pass the new Add-on image reference.}
 expected_version=${3:?Pass the expected HA Bridge application version.}
+previous_base=${4:-}
+platform=${VERIFY_PLATFORM:-}
+project_root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd -P)
 
 verify_root=$(mktemp -d "${TMPDIR:-/tmp}/ha-bridge-addon-upgrade.XXXXXX")
 container_name="ha-bridge-addon-release-verify-$$"
@@ -32,7 +35,9 @@ trap 'exit 143' TERM HUP
 
 start_container() {
   image_ref=$1
-  docker run --detach --name "$container_name" \
+  set --
+  if [ -n "$platform" ]; then set -- --platform "$platform"; fi
+  docker run "$@" --detach --name "$container_name" \
     --env APP_DATA_DIR=/data \
     --env APP_PORT=18080 \
     --env APP_HA_CREDENTIAL_FILE=/run/secrets/ha_credentials.key \
@@ -63,12 +68,25 @@ wait_ready() {
   return 1
 }
 
-previous_version=${previous_ref##*:}
-previous_base=${previous_version%-*}
+if [ -z "$previous_base" ]; then
+  case "$previous_ref" in *@*) echo "Pass the previous application version for digest-pinned upgrades" >&2; exit 2;; esac
+  previous_version=${previous_ref##*:}
+  previous_base=${previous_version%-*}
+fi
 start_container "$previous_ref"
 wait_ready "$previous_base"
+docker exec -i "$container_name" /opt/venv/bin/python - seed < "$project_root/release/upgrade_data_probe.py"
 docker stop "$container_name" >/dev/null
 docker rm "$container_name" >/dev/null
+
+# Snapshot and back up only the stopped, internally consistent anonymous fixture.
+start_container "$previous_ref"
+wait_ready "$previous_base"
+docker exec -i "$container_name" /opt/venv/bin/python - snapshot < "$project_root/release/upgrade_data_probe.py" > "$verify_root/before.json"
+docker stop "$container_name" >/dev/null
+docker rm "$container_name" >/dev/null
+cp -Rp "$verify_root/data" "$verify_root/data-backup"
+cp -Rp "$verify_root/secrets" "$verify_root/secrets-backup"
 
 start_container "$release_ref"
 wait_ready "$expected_version"
@@ -77,6 +95,22 @@ if [ "$runtime_uid" != "100" ]; then
   echo "Add-on application must run as UID 100 after initialization; got $runtime_uid" >&2
   exit 1
 fi
+
+docker exec -i "$container_name" /opt/venv/bin/python - snapshot < "$project_root/release/upgrade_data_probe.py" > "$verify_root/after.json"
+cmp "$verify_root/before.json" "$verify_root/after.json"
+docker restart "$container_name" >/dev/null
+wait_ready "$expected_version"
+docker exec -i "$container_name" /opt/venv/bin/python - snapshot < "$project_root/release/upgrade_data_probe.py" > "$verify_root/restarted.json"
+cmp "$verify_root/before.json" "$verify_root/restarted.json"
+docker stop "$container_name" >/dev/null
+docker rm "$container_name" >/dev/null
+rm -rf "$verify_root/data" "$verify_root/secrets"
+mv "$verify_root/data-backup" "$verify_root/data"
+mv "$verify_root/secrets-backup" "$verify_root/secrets"
+start_container "$previous_ref"
+wait_ready "$previous_base"
+docker exec -i "$container_name" /opt/venv/bin/python - snapshot < "$project_root/release/upgrade_data_probe.py" > "$verify_root/restored.json"
+cmp "$verify_root/before.json" "$verify_root/restored.json"
 
 trap - EXIT INT TERM HUP
 cleanup
