@@ -7,6 +7,9 @@ import sqlite3
 import sys
 import urllib.request
 
+from backend.app.panel.documents import create_blank_project
+from backend.app.panel.schema import validate_panel_document
+
 ROOT = Path('/data')
 MARKER = ROOT / '.release-fixture.json'
 USERNAME = 'release-fixture'
@@ -28,8 +31,13 @@ def seed():
     db = sqlite3.connect(ROOT / 'app.db')
     stamp = '2026-01-01 00:00:00.000000'
     project = '00000000-0000-4000-8000-000000000001'
+    # Generate and validate with the *running previous release's* own schema.
+    # A nonempty but unvalidated JSON blob would not prove usable old data.
+    document = create_blank_project(project, 'Anonymous upgrade fixture', 1280, 800)
+    document['pages'] = [{'id': 'fixture-page', 'name': 'Fixture page', 'path': 'fixture-page', 'components': [{'id': 'fixture-text', 'type': 'text', 'properties': {'text': 'Anonymous retained old-version content'}}]}]
+    document = validate_panel_document(document)
     db.execute('INSERT INTO projects(id,name,slug,description,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?)', (project, 'Anonymous upgrade fixture', 'release-fixture', 'Synthetic persistent content', user['id'], stamp, stamp))
-    db.execute('INSERT INTO project_drafts(project_id,schema_version,revision,document_json,updated_by,updated_at) VALUES(?,?,?,?,?,?)', (project, 1, 7, json.dumps({'schemaVersion': 1, 'pages': [], 'fixture': 'nonempty-old-version'}), user['id'], stamp))
+    db.execute('INSERT INTO project_drafts(project_id,schema_version,revision,document_json,updated_by,updated_at) VALUES(?,?,?,?,?,?)', (project, 1, 7, json.dumps(document), user['id'], stamp))
     db.commit()
     db.close()
     MARKER.write_text(json.dumps({'cookie': cookie, 'user': user}))
@@ -46,6 +54,9 @@ def snapshot():
     tables = {}
     for table in ['users', 'projects', 'project_drafts']:
         tables[table] = db.execute('SELECT * FROM ' + table + ' ORDER BY 1').fetchall()
+    for row in tables['project_drafts']:
+        document = validate_panel_document(json.loads(row[3]))
+        assert document['pages'][0]['components'][0]['properties']['text'] == 'Anonymous retained old-version content'
     instance = db.execute('SELECT instance_id FROM license_state WHERE id=1').fetchone()
     assert tables['projects'] and tables['project_drafts'] and instance, 'empty fixture is not an upgrade test'
     db.close()
