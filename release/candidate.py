@@ -108,8 +108,13 @@ def prepare(version):
         state.update(digest=image['digest'], phase='built')
         release_state.save(path, state)
     with tempfile.TemporaryDirectory(prefix='hb-addon-candidate-auth-') as directory:
+        original = Path(os.environ.get('DOCKER_CONFIG', str(Path.home() / '.docker')))
+        (Path(directory) / 'config.json').write_text(json.dumps({
+            'auths': {'https://index.docker.io/v1/': {}, 'registry-1.docker.io': {}},
+            'cliPluginsExtraDirs': [str(original / 'cli-plugins')],
+        }))
         env = dict(os.environ, DOCKER_CONFIG=directory)
-        command('docker', 'manifest', 'inspect', ref + '@' + state['digest'], env=env)
+        command('docker', 'buildx', 'imagetools', 'inspect', ref + '@' + state['digest'], env=env)
     for platform in ['linux/amd64', 'linux/arm64']:
         command('sh', 'release/verify_addon_upgrade.sh', previous, ref + '@' + state['digest'], version.rsplit('-', 1)[0], old_app, env=dict(os.environ, VERIFY_PLATFORM=platform))
     source_matches(state)

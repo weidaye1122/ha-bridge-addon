@@ -1,5 +1,9 @@
 # Add-on 代码地图
 
+## 2026-11-07 真实候选的匿名仓库读取
+
+本节基线`a2ee510`加本轮发布修复。`candidate.prepare`沿原不可变摘要使用`docker buildx imagetools inspect`核对匿名可读性；临时Docker配置写显式空auth条目，阻止macOS原生凭据自动发现，只保留Buildx插件定位路径。它不复制用户鉴权或放宽镜像/签名/平台/升级要求；失败仍停止准备，配置由原临时目录清理。主程序保持所属匿名检查及完整发布责任，行为由主程序真实临时Git/有状态仓库替身与本项目检查共同验证；实际远端结果见本轮当前验证。
+
 ## 2026-11-06 候选验收与正式提升
 
 本节基线4f02384加本次修改，安装配置、容器入口和业务源码不变。主程序full_release_pipeline通过本仓库公开release/candidate.py准备Add-on候选，BASE_IMAGE_REF为阿里云候选主镜像repo@digest，PREVIOUS_ADDON_REF及旧应用版本来自上一次成功发布账本；临时数据/密钥与业务无关。prepare锁定源码/引用与摘要，双架构清单及匿名拉取、分平台调用verify_addon_upgrade.sh后保存verified；不写正式版本/latest/配置/Git。
