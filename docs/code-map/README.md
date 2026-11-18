@@ -2,7 +2,7 @@
 
 ## 2026-11-18 反代额外来源选项
 
-局部基线 `09b9be5` 加本任务未提交配置，仅新增 `ha_bridge/config.yaml` 的空 `additional_public_origins` 列表、schema 和中英翻译，不改镜像/版本/挂载/权限。`APP_ADDON_OPTIONS_FILE=/data/options.json` 告知匹配主镜像的 `container_entrypoint.initialize_addon_options` 在降权前只读取该项；其余 options 不进入环境，显式环境值优先。主程序 Settings 的额外来源与 HTTP/runtime/Go2RTC 来源判断共用，默认空列表不影响内网直连。配置保存后由应用重启生效，不新增业务存档或后台任务。
+局部基线 `09b9be5`，实现 `3aaeb71`，仅新增 `ha_bridge/config.yaml` 的空 `additional_public_origins` 列表、schema 和中英翻译，不改镜像/版本/挂载/权限。`APP_ADDON_OPTIONS_FILE=/data/options.json` 告知匹配主镜像的 `container_entrypoint.initialize_addon_options` 在降权前只读取该项；其余 options 不进入环境，显式环境值优先。主程序 Settings 的额外来源与 HTTP/runtime/Go2RTC 来源判断共用，默认空列表不影响内网直连。配置保存后由应用重启生效，不新增业务存档或后台任务。
 
 验证：本项目离线检查；主程序 `test_container_entrypoint` 验证旧/空/错误 options、显式环境优先和降权顺序，`test_request_origin` 与配对/实时/视频集成覆盖实际允许与拒绝。真实 Supervisor 配置表单/升级仍待现场验收，离线 schema 读取不冒充真机通过。具体结果和主镜像提交见本组当前验证。
 
