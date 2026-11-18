@@ -1,0 +1,4 @@
+configuration:
+  additional_public_origins:
+    name: 额外公开访问来源
+    description: 通常留空。经反代无法配对或实时连接时，添加实际访问来源，如 https://panel.example.com:8443；包含端口，不带路径。内网直连继续可用。

@@ -21,3 +21,17 @@ ha_credentials.key
 display_pairing_codes.key
 license_credentials.key
 ```
+
+
+## HTTPS 反向代理与非默认端口
+
+HTTP 请求带同源标记时，主程序可自动兼容 Nginx Proxy Manager 等反代的 HTTPS 终止、Host 改写或外部端口省略，配对与实时/视频连接使用同一套来源规则。
+
+浏览器缺少该标记、仍无法配对或实时连接时（部分现代浏览器的 WebSocket 也不携带该标记），在本应用“配置”的“额外公开访问来源”中填写完整来源，保存后重启应用，例如：
+
+```yaml
+additional_public_origins:
+  - "https://panel.example.com:8443"
+```
+
+只填写协议、域名和实际端口，不带 `/login`、`/habridge/...` 等路径，不填写通配符。默认空列表保持原行为，新增来源保留局域网直连；登录、配对码、项目及授权限制继续生效。此选项由匹配的新主镜像读取，旧主镜像不会因配置变化获得兼容能力。显式设置过 `APP_BASE_URL` 的部署仍遵循原固定来源限制。

@@ -1,5 +1,11 @@
 # Add-on 代码地图
 
+## 2026-11-18 反代额外来源选项
+
+局部基线 `09b9be5` 加本任务未提交配置，仅新增 `ha_bridge/config.yaml` 的空 `additional_public_origins` 列表、schema 和中英翻译，不改镜像/版本/挂载/权限。`APP_ADDON_OPTIONS_FILE=/data/options.json` 告知匹配主镜像的 `container_entrypoint.initialize_addon_options` 在降权前只读取该项；其余 options 不进入环境，显式环境值优先。主程序 Settings 的额外来源与 HTTP/runtime/Go2RTC 来源判断共用，默认空列表不影响内网直连。配置保存后由应用重启生效，不新增业务存档或后台任务。
+
+验证：本项目离线检查；主程序 `test_container_entrypoint` 验证旧/空/错误 options、显式环境优先和降权顺序，`test_request_origin` 与配对/实时/视频集成覆盖实际允许与拒绝。真实 Supervisor 配置表单/升级仍待现场验收，离线 schema 读取不冒充真机通过。具体结果和主镜像提交见本组当前验证。
+
 ## 2026-11-07 真实候选的匿名仓库读取
 
 本节基线`a2ee510`加本轮发布修复。`candidate.prepare`沿原不可变摘要使用`docker buildx imagetools inspect`核对匿名可读性；临时Docker配置写显式空auth条目，阻止macOS原生凭据自动发现，只保留Buildx插件定位路径。它不复制用户鉴权或放宽镜像/签名/平台/升级要求；失败仍停止准备，配置由原临时目录清理。主程序保持所属匿名检查及完整发布责任，行为由主程序真实临时Git/有状态仓库替身与本项目检查共同验证；实际远端结果见本轮当前验证。

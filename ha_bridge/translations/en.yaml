@@ -1,0 +1,4 @@
+configuration:
+  additional_public_origins:
+    name: Additional public origins
+    description: Usually leave empty. For browsers behind a reverse proxy, add the exact public origin, such as https://panel.example.com:8443, including its port and no path. Direct LAN access remains available.
