@@ -1,27 +1,27 @@
-# 使用说明
+# HA Bridge 使用说明
 
-## 首次安装
+## 启动与首次设置
 
-1. 在 Home Assistant 的 Add-on 商店安装并启动 HA Bridge。
-2. 打开 `http://Home Assistant_IP:18080`。
-3. 首次访问时设置管理员账号和密码。
-4. 输入授权信息。
-5. 在 HA Bridge 中配置 Home Assistant 地址和长期 Token。
+1. 点击「启动」。状态显示「运行中」后，点击「打开网页界面」。
+2. 创建 HA Bridge 的本地管理员账号，输入激活码完成激活。
+3. 在 HA Bridge 中填写 Home Assistant 的服务地址和长期访问令牌。测试连接成功后保存。
 
-## 升级
+同一局域网内也可直接用浏览器打开，例如 `http://192.168.1.10:18080`。请把示例 IP 换成你的 Home Assistant 主机局域网地址。
 
-升级 Add-on 时不要删除 Add-on 数据。Supervisor 会保留 `/data` 和 `/run/secrets` 对应的持久化目录。
+[首次设置与激活](https://wiki.habridge.cn/manual/first-setup.html) · [连接 Home Assistant](https://wiki.habridge.cn/manual/connect-home-assistant.html)
 
-## 迁移现有 Docker 安装
+## 更新
 
-如果从普通 Docker 迁移，请在迁移前备份 `/data` 和 `/run/secrets`。数据库与三个加密密钥必须一起保留：
+更新前可在 Home Assistant 创建包含 HA Bridge 的备份。在原来的 HA Bridge 应用页面点击「更新」，保留现有应用数据。更新完成后，打开网页界面检查原有仪表盘和 Home Assistant 连接。
 
-```text
-ha_credentials.key
-display_pairing_codes.key
-license_credentials.key
-```
+## 备份与迁移
 
+- **完整恢复 HA Bridge Add-on**。使用 Home Assistant 备份，确认备份和恢复时都包含 HA Bridge 应用及其数据。需要回退时，使用升级前与旧版本匹配的完整备份。
+- **从 Docker 迁移仪表盘、户型和 HA 连接**。在原安装的 HA Bridge 中导出加密的 `.habackup` 文件。新安装完成账号设置和激活后，再导入备份。导入会替换目标安装的业务数据，目标安装的管理员账号和授权继续使用，中控设备需要重新配对。
+
+操作步骤见 [备份与恢复](https://wiki.habridge.cn/maintenance/backup-restore.html)。
+
+公开反馈问题时，请提供 Add-on 版本、安装来源和脱敏后的日志。备份文件、令牌、激活码、密码和密钥请妥善保管。
 
 ## HTTPS 反向代理与非默认端口
 

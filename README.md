@@ -1,18 +1,23 @@
 # HA Bridge Home Assistant Add-on
 
-开发定位与修改影响见 [代码地图](docs/code-map/README.md)。
+HA Bridge 是一个智能家居可视化面板编辑器。你可以制作仪表盘和 3D 户型，在面板中查看设备状态并控制 Home Assistant 设备。
 
-这是独立的 HA 插件安装仓库，通过不可变摘要消费 HA Bridge 镜像，不复制主程序源码；候选先验收，正式渠道随主程序统一提升。
+## 安装
 
-- `repository.yaml`：插件仓库信息。
-- `ha_bridge/config.yaml`：插件版本与配置；使用与安装见 [插件说明](ha_bridge/README.md) 和 [使用文档](ha_bridge/DOCS.md)。
-- `release/`：发布与升级验证工具。
-- `tests/test_release_flow.py`：发布流程检查。
+适用于带应用商店的 Home Assistant，支持 AMD64 和 ARM64。
 
-规则见 [AGENTS.md](AGENTS.md)。日常执行 `sh tools/check.sh`，无需借用主程序环境。Add-on 始终跟随主程序，由主程序 `release/publish_full_release.sh` 统一发布；本仓库发布脚本承担其中的适配镜像和升级步骤。测试通过不代替真实 HAOS 升级验收。
+1. 在 Home Assistant 打开「设置 → 应用 → 安装应用」，从右上角菜单进入「仓库」。旧版界面中，「应用」可能显示为「Add-ons」。
+2. 首次安装选择一个地址添加。国内网络优先选 Gitee，访问不畅时可选 GitHub。
+   - Gitee 国内同步源 `https://gitee.com/weidaye1122/ha-bridge-addon`
+   - GitHub 发布源 `https://github.com/weidaye1122/ha-bridge-addon`
+3. 返回应用商店，搜索并安装「HA Bridge」。安装完成后点击「启动」，再点击「打开网页界面」。
 
-## 仓库与开发规则
+详细步骤见 [HAOS 安装教程](https://wiki.habridge.cn/deploy/haos-addon.html)。
 
-本目录是独立 Git 项目，开发规则见 [AGENTS.md](AGENTS.md)。源码、锁文件与规则由本仓库管理，数据、依赖和生成包按 `.gitignore` 留在本机。总工作区的项目清单与公共规则单独管理，目录整理不代表业务功能已发布。
+## 更新
 
-开发定位、环境、验证与交付边界见 [开发入口](docs/DEVELOPMENT.md)。
+已安装的用户请在原来的 HA Bridge 应用页面更新。从另一个仓库安装会创建独立实例，原有数据仍在原来的安装中。
+
+新版本先发布到 GitHub，Gitee 随后自动同步。两个来源使用同一个阿里云容器镜像。暂时看不到新版本时，可以在应用商店执行「检查更新」。
+
+[首次设置与激活](https://wiki.habridge.cn/manual/first-setup.html) · [备份与恢复](https://wiki.habridge.cn/maintenance/backup-restore.html)
