@@ -21,3 +21,32 @@ output/
 AuthKey_*.p8
 *.key
 *private*.pem
+
+# Local databases and SQLite sidecars
+/data/
+admin-account.json
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Local backups and logs
+/backup/
+/backups/
+/logs/
+*.habackup
+*.bak
+*.backup
+*.tar
+*.tar.gz
+*.tgz
+*.log
+*.log.*
